@@ -1,34 +1,54 @@
 // Javascript modules --> javascript ei pysty kommunikoimaan muiden javascript tiedostojen kanssa ellei luoda spesifistä yhteyttä (export ja import)
 // React ydin kirjasto osaa pelata React-componentsien kanssa, kuinka renderöidä ne ja limittää yhteen
+import _ from 'lodash'; // Loadas merkataan yleensä _
 import React, { Component } from 'react';
-// ReactDOM kirjasto sensijaan osaa renderöidä ne DOM:iin
-import ReactDOM from 'react-dom';
+import ReactDOM from 'react-dom'; // ReactDOM kirjasto sensijaan osaa renderöidä ne DOM:iin
 import YTSearch from 'youtube-api-search';
-// Voidaan importata SearchBar koska se on määritetty exportattavaksi
 import SearchBar from './components/search_bar'; // omille importeille pitää tehdä tarkat polut
+import VideoList from './components/video_list';
+import VideoDetail from './components/video_detail';
 
-// Youtube api-key
-const API_KEY = 'AIzaSyDHyqX_rLPUfGJWIsX5IrTpriyfObeLgo4';
+const API_KEY = 'AIzaSyDHyqX_rLPUfGJWIsX5IrTpriyfObeLgo4'; // Youtube api-key
 
-YTSearch({key: API_KEY, term: 'surfboards'}, function(data) {
-    console.log(data)
-});
 
-// Create a new component. This component should produce some HTML
-class App extends Component  { //<-- Tämä on enemmänkin luokka josta luodaan elementtejä (ilmentymiä)
+class App extends Component  {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            videos: [],
+            selectedVideo: null
+        };
+
+        this.videoSearch('surfboards');
+    }
+
+    videoSearch(term) {
+        YTSearch({key: API_KEY, term: term}, (videos) => {
+            this.setState({
+                videos: videos,
+                selectedVideo: videos[0]
+            });
+        });
+    }
+
     render() {
+        const videoSearch = _.debounce((term) => { this.videoSearch(term) }, 300);
+
         return (
             <div>
-                <SearchBar />
+                <SearchBar  onSearchTermChange={videoSearch}/>
+                <VideoDetail  video={this.state.selectedVideo}/>
+                <VideoList
+                    onVideoSelect={selectedVideo => this.setState({selectedVideo}) }
+                    videos={this.state.videos} />
             </div>
-        )
+        );
     }
 }
 
 // Take this component's generated HTML and put it on the PAGE (in the DOM)
-// ReactDOM.render(App); --> Tämä ei toimi sillä nyt DOM:iin yritettään renderöidä luokkaa
-// ReactDOM.render(<App />); // Tämä toimii vähän paremmin sillä nyt luokasta App tehdään ilmentymä, mutta sitä ei käytetä mihinkään joten sekin antaa errorin
-ReactDOM.render(<App />, document.querySelector('.container')); // Tämä toimii
+ReactDOM.render(<App />, document.querySelector('.container'));
 
 
 
@@ -42,5 +62,11 @@ ReactDOM.render(<App />, document.querySelector('.container')); // Tämä toimii
 // => eli fatArrown ero function lauseeseen on se että this on hieman erillainen sen sisällä (to be continued...)
 
 //ES6 file is like a silo! You need to export and import stuff between files.
-
+//ES6: (data) = > foo = {data: data} on sama asia kuin (data) => foo = {data}
 //Downwards data-flow --> Only the most parent component in application should be responsible for fetching data
+// Component should produce some HTML
+
+//Luokan ilmentymiä tehdään <Luokka />
+
+// ReactDOM.render(App); --> Tämä ei toimi sillä nyt DOM:iin yritettään renderöidä luokkaa
+// ReactDOM.render(<App />); // Tämä toimii vähän paremmin sillä nyt luokasta App tehdään ilmentymä, mutta sitä ei käytetä mihinkään joten sekin antaa errorin
